@@ -15,7 +15,9 @@ ec_multiexp_straus(int max_thread_use_sharemem, var *out, const var *multiples_,
     int T = threadIdx.x, B = blockIdx.x, D = blockDim.x;
     int elts_per_block = D / BIG_WIDTH;
     int tileIdx = T / BIG_WIDTH;
+#ifdef ENABLE_SHARE_MEM
     int TInBlock = (T%D);
+#endif
 
     int idx = elts_per_block * B + tileIdx;
 
@@ -160,18 +162,21 @@ ec_reduce_straus(int share_mem_size, int thread_in_block, cudaStream_t &strm, va
     static constexpr size_t pt_limbs = EC::NELTS * ELT_LIMBS;
     size_t n = (N + R - 1) / R;
 
-    size_t nblocks = (n * BIG_WIDTH + threads_per_block - 1) / threads_per_block;
-    int max_thread_use_sharemem = share_mem_size/(R*sizeof(var));
+    size_t nblocks = (n * BIG_WIDTH + thread_in_block - 1) / thread_in_block;
+    int max_thread_use_sharemem = 0;
+#ifdef ENABLE_SHARE_MEM
+    max_thread_use_sharemem = share_mem_size/(R*sizeof(var));;
+#endif
 
     ec_multiexp_straus<EC, C, R><<< nblocks, thread_in_block, share_mem_size, strm>>>(max_thread_use_sharemem, out, multiples, scalars, N);
 
     size_t r = n & 1, m = n / 2;
     for ( ; m != 0; r = m & 1, m >>= 1) {
-        nblocks = (m * BIG_WIDTH + threads_per_block - 1) / threads_per_block;
+        nblocks = (m * BIG_WIDTH + thread_in_block - 1) / thread_in_block;
 
-        ec_sum_all<EC><<<nblocks, threads_per_block, 0, strm>>>(out, out + m*pt_limbs, m);
+        ec_sum_all<EC><<<nblocks, thread_in_block, 0, strm>>>(out, out + m*pt_limbs, m);
         if (r)
-            ec_sum_all<EC><<<1, threads_per_block, 0, strm>>>(out, out + 2*m*pt_limbs, 1);
+            ec_sum_all<EC><<<1, thread_in_block, 0, strm>>>(out, out + 2*m*pt_limbs, 1);
     }
 }
 
