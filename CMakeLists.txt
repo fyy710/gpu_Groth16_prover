@@ -6,6 +6,7 @@ enable_language(CUDA)
 #string(APPEND MSHADOW_CFLAGS " -MSHADOW_USE_PASCAL=1 ")
 #string(APPEND CMAKE_CUDA_FLAGS " -G -g")
 add_definitions(-DENABLE_SHARE_MEM)
+add_definitions(-DGPU_CALC_L=2)
 
 project (libsnark)
 

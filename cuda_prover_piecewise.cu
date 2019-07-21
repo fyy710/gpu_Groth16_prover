@@ -118,6 +118,9 @@ void run_prover(
 #ifdef ENABLE_SHARE_MEM
     printf("Enable SHARE MEM\n");
 #endif
+#ifdef GPU_CALC_L
+    printf("GPU Calc Lt part (1/%d)\n", GPU_CALC_L);
+#endif
 
     typedef typename ec_type<B>::ECp ECp;
     typedef typename ec_type<B>::ECpe ECpe;
@@ -132,16 +135,24 @@ void run_prover(
     size_t space = ((m + 1) + R - 1) / R;
 
     auto A_mults = load_points_affine<ECp>(((1U << C) - 1)*(m + 1), preprocessed_file);
-    auto out_A = allocate_memory(space * ECpe::NELTS * ELT_BYTES);
+    auto out_A = allocate_memory(space * ECp::NELTS * ELT_BYTES);
 
     auto B1_mults = load_points_affine<ECp>(((1U << C) - 1)*(m + 1), preprocessed_file);
-    auto out_B1 = allocate_memory(space * ECpe::NELTS * ELT_BYTES);
+    auto out_B1 = allocate_memory(space * ECp::NELTS * ELT_BYTES);
 
     auto B2_mults = load_points_affine<ECpe>(((1U << C) - 1)*(m + 1), preprocessed_file);
     auto out_B2 = allocate_memory(space * ECpe::NELTS * ELT_BYTES);
 
-    auto L_mults = load_points_affine<ECp>(((1U << C) - 1)*(m - 1), preprocessed_file);
-    auto out_L = allocate_memory(space * ECpe::NELTS * ELT_BYTES);
+    size_t l_gpu_space = space;
+    size_t l_gpu_size = m - 1;
+#ifdef GPU_CALC_L
+    if (GPU_CALC_L != 0) {
+      l_gpu_space = space/GPU_CALC_L;
+      l_gpu_size = (m - 1)/GPU_CALC_L;
+    }
+#endif
+    auto L_mults = load_points_affine<ECp>(((1U << C) - 1)*l_gpu_size, preprocessed_file);
+    auto out_L = allocate_memory(l_gpu_space * ECp::NELTS * ELT_BYTES);
 
     fclose(preprocessed_file);
 
@@ -169,7 +180,7 @@ void run_prover(
     ec_reduce_straus<ECp, C, R>(share_mem_size, thread_in_block, sA, out_A.get(), A_mults.get(), w, m + 1);
     ec_reduce_straus<ECp, C, R>(share_mem_size, thread_in_block, sB1, out_B1.get(), B1_mults.get(), w, m + 1);
     ec_reduce_straus<ECpe, C, 2*R>(share_mem_size, thread_in_block/2, sB2, out_B2.get(), B2_mults.get(), w, m + 1);
-    ec_reduce_straus<ECp, C, R>(share_mem_size, thread_in_block, sL, out_L.get(), L_mults.get(), w + (primary_input_size + 1) * ELT_LIMBS, m - 1);
+    ec_reduce_straus<ECp, C, R>(share_mem_size, thread_in_block, sL, out_L.get(), L_mults.get(), w + (primary_input_size + 1) * ELT_LIMBS, l_gpu_size);
     print_time(t, "gpu launch");
 
     //G1 *evaluation_At = B::multiexp_G1(B::input_w(inputs), B::params_A(params), m + 1);
@@ -182,6 +193,13 @@ void run_prover(
     auto coefficients_for_H =
         compute_H<B>(d, B::input_ca(inputs), B::input_cb(inputs), B::input_cc(inputs));
     G1 *evaluation_Ht = B::multiexp_G1(coefficients_for_H, H, d);
+
+#ifdef GPU_CALC_L
+    size_t l_cpu_size = (m - 1) - l_gpu_size;
+    G1 *evaluation_Lt_cpu = B::multiexp_G1(
+      B::input_w(inputs, primary_input_size + 1 + l_gpu_size),
+      B::params_L(params), l_gpu_size, l_cpu_size);
+#endif
 
     print_time(t, "cpu 1");
 
@@ -202,6 +220,10 @@ void run_prover(
 
     cudaStreamSynchronize(sL);
     G1 *evaluation_Lt = B::read_pt_ECp(out_L.get());
+
+#ifdef GPU_CALC_L
+    evaluation_Lt = B::G1_add(evaluation_Lt, evaluation_Lt_cpu);
+#endif
 
     print_time(t_gpu, "gpu e2e");
 

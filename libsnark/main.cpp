@@ -245,7 +245,7 @@ void write_g2_vec(FILE *out, const std::vector<G2<ppT>> &vec) {
 }
 
 template<typename ppT>
-void output_g1_multiples(int C, const std::vector<G1<ppT>> &vec, FILE *output) {
+void output_g1_multiples(int C, size_t len, const std::vector<G1<ppT>> &vec, FILE *output) {
     // If vec = [P0, ..., Pn], then multiples holds an array
     //
     // [    P0, ...,     Pn,
@@ -254,7 +254,6 @@ void output_g1_multiples(int C, const std::vector<G1<ppT>> &vec, FILE *output) {
     //          ...,
     //  2^(C-1) P0, ..., 2^(C-1) Pn]
     std::vector<G1<ppT>> multiples;
-    size_t len = vec.size();
     multiples.resize(len * ((1U << C) - 1));
     std::copy(vec.begin(), vec.end(), multiples.begin());
 
@@ -325,13 +324,13 @@ void run_preprocess(const char *params_path, const char *output_path)
     FILE *output = fopen(output_path, "w");
 
     printf("Processing A...\n");
-    output_g1_multiples<ppT>(C, params.A, output);
+    output_g1_multiples<ppT>(C, params.A.size(), params.A, output);
     printf("Processing B1...\n");
-    output_g1_multiples<ppT>(C, params.B1, output);
+    output_g1_multiples<ppT>(C, params.B1.size(), params.B1, output);
     printf("Processing B2...\n");
     output_g2_multiples<ppT>(C, params.B2, output);
     printf("Processing L...\n");
-    output_g1_multiples<ppT>(C, params.L, output);
+    output_g1_multiples<ppT>(C, params.L.size()/GPU_CALC_L, params.L, output);
 //    printf("Processing H...\n");
 //    output_g1_multiples<ppT>(C, params.H, output);
 
@@ -344,6 +343,9 @@ int main(int argc, const char * argv[])
   setbuf(stdout, NULL);
   std::string curve(argv[1]);
   std::string mode(argv[2]);
+#ifdef GPU_CALC_L
+    printf("GPU Calc Lt part (1/%d)\n", GPU_CALC_L);
+#endif
 
   const char* params_path = argv[3];
 

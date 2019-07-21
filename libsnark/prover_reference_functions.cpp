@@ -357,6 +357,19 @@ mnt4753_libsnark::multiexp_G1(mnt4753_libsnark::vector_Fr *scalar_start,
           scalar_start->data->begin() + scalar_start->offset,
           g_start->data->begin(), length)};
 }
+
+mnt4753_libsnark::G1 *
+mnt4753_libsnark::multiexp_G1(mnt4753_libsnark::vector_Fr *scalar_start,
+                              mnt4753_libsnark::vector_G1 *g_start,
+                              size_t g_offset,
+                              size_t length) {
+
+  return new mnt4753_libsnark::G1{
+      multiexp<libff::G1<mnt4753_pp>, Fr<mnt4753_pp>>(
+          scalar_start->data->begin() + scalar_start->offset,
+          g_start->data->begin() + g_offset, length)};
+}
+
 mnt4753_libsnark::G2 *
 mnt4753_libsnark::multiexp_G2(mnt4753_libsnark::vector_Fr *scalar_start,
                               mnt4753_libsnark::vector_G2 *g_start,
@@ -375,6 +388,11 @@ mnt4753_libsnark::read_input(FILE *inputs, size_t d, size_t m) {
 mnt4753_libsnark::vector_Fr *
 mnt4753_libsnark::input_w(mnt4753_libsnark::groth16_input *input) {
   return new mnt4753_libsnark::vector_Fr{.data = input->w, .offset = 0};
+}
+
+mnt4753_libsnark::vector_Fr *
+mnt4753_libsnark::input_w(mnt4753_libsnark::groth16_input *input, size_t offset) {
+  return new mnt4753_libsnark::vector_Fr{.data = input->w, .offset = offset};
 }
 
 mnt4753_libsnark::vector_G1 *
@@ -697,6 +715,19 @@ mnt6753_libsnark::multiexp_G1(mnt6753_libsnark::vector_Fr *scalar_start,
           scalar_start->data->begin() + scalar_start->offset,
           g_start->data->begin(), length)};
 }
+
+mnt6753_libsnark::G1 *
+mnt6753_libsnark::multiexp_G1(mnt6753_libsnark::vector_Fr *scalar_start,
+                              mnt6753_libsnark::vector_G1 *g_start,
+                              size_t g_offset,
+                              size_t length) {
+
+  return new mnt6753_libsnark::G1{
+      multiexp<libff::G1<mnt6753_pp>, Fr<mnt6753_pp>>(
+          scalar_start->data->begin() + scalar_start->offset,
+          g_start->data->begin() + g_offset, length)};
+}
+
 mnt6753_libsnark::G2 *
 mnt6753_libsnark::multiexp_G2(mnt6753_libsnark::vector_Fr *scalar_start,
                               mnt6753_libsnark::vector_G2 *g_start,
@@ -715,6 +746,11 @@ mnt6753_libsnark::read_input(FILE *inputs, size_t d, size_t m) {
 mnt6753_libsnark::vector_Fr *
 mnt6753_libsnark::input_w(mnt6753_libsnark::groth16_input *input) {
   return new mnt6753_libsnark::vector_Fr{.data = input->w, .offset = 0};
+}
+
+mnt6753_libsnark::vector_Fr *
+mnt6753_libsnark::input_w(mnt6753_libsnark::groth16_input *input, size_t offset) {
+  return new mnt6753_libsnark::vector_Fr{.data = input->w, .offset = offset};
 }
 
 mnt6753_libsnark::vector_G1 *
