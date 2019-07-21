@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 
 enable_language(CUDA)
+#string(APPEND CMAKE_CUDA_FLAGS " -maxrregcount=96")
+#string(APPEND CMAKE_CUDA_FLAGS " --ptxas-options=-v")
+#string(APPEND MSHADOW_CFLAGS " -MSHADOW_USE_PASCAL=1 ")
+#string(APPEND CMAKE_CUDA_FLAGS " -G -g")
+add_definitions(-DENABLE_SHARE_MEM)
 
 project (libsnark)
 
